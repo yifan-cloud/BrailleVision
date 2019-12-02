@@ -1,91 +1,129 @@
-import argparse
-from enum import Enum
+"""
+Some relevant tutorials:
+https://cloud.google.com/vision/docs/fulltext-annotations
+https://github.com/GoogleCloudPlatform/python-docs-samples/blob/master/functions/ocr/app/main.py
+https://cloud.google.com/vision/docs/ocr
+https://cloud.google.com/translate/docs/hybrid-glossaries-tutorial
+"""
+
 import io
+import html
 
 from google.cloud import vision
 from google.cloud.vision import types
-from PIL import Image, ImageDraw
+from google.cloud import texttospeech
 
+# from google tutorial functions/ocr/app/main.py
+def detect_text(bucket, filename):
+    print('Looking for text in image {}'.format(filename))
 
-class FeatureType(Enum):
-    PAGE = 1
-    BLOCK = 2
-    PARA = 3
-    WORD = 4
-    SYMBOL = 5
+    futures = []
 
+    text_detection_response = vision_client.text_detection({
+        'source': {'image_uri': 'gs://{}/{}'.format(bucket, filename)}
+    })
+    annotations = text_detection_response.text_annotations
+    if len(annotations) > 0:
+        text = annotations[0].description
+    else:
+        text = ''
+    print('Extracted text {} from image ({} chars).'.format(text, len(text)))
 
-def draw_boxes(image, bounds, color):
-    """Draw a border around the image using the hints in the vector list."""
-    draw = ImageDraw.Draw(image)
-
-    for bound in bounds:
-        draw.polygon([
-            bound.vertices[0].x, bound.vertices[0].y,
-            bound.vertices[1].x, bound.vertices[1].y,
-            bound.vertices[2].x, bound.vertices[2].y,
-            bound.vertices[3].x, bound.vertices[3].y], None, color)
-    return image
-
-
-def get_document_bounds(image_file, feature):
-    """Returns document bounds given an image."""
+# from https://cloud.google.com/vision/docs/ocr
+def detect_text(path):
+    """Detects text in the file."""
+    import io
     client = vision.ImageAnnotatorClient()
 
-    bounds = []
-
-    with io.open(image_file, 'rb') as image_file:
+    with io.open(path, 'rb') as image_file:
         content = image_file.read()
 
-    image = types.Image(content=content)
+    image = vision.types.Image(content=content)
 
+    response = client.text_detection(image=image)
+    texts = response.text_annotations
+    print('Texts:')
+
+    for text in texts:
+        print('\n"{}"'.format(text.description))
+
+        vertices = (['({},{})'.format(vertex.x, vertex.y)
+                    for vertex in text.bounding_poly.vertices])
+
+        print('bounds: {}'.format(','.join(vertices)))
+
+# from https://cloud.google.com/translate/docs/hybrid-glossaries-tutorial
+def pic_to_text(infile):
+    """Detects text in an image file
+
+    ARGS
+    infile: path to image file
+
+    RETURNS
+    String of text detected in image
+    """
+
+    # Instantiates a client
+    client = vision.ImageAnnotatorClient()
+
+    # Opens the input image file
+    with io.open(infile, 'rb') as image_file:
+        content = image_file.read()
+
+    image = vision.types.Image(content=content)
+
+    # For dense text, use document_text_detection
+    # For less dense text, use text_detection
     response = client.document_text_detection(image=image)
-    document = response.full_text_annotation
+    text = response.full_text_annotation.text
 
-    # Collect specified feature bounds by enumerating all document features
-    for page in document.pages:
-        for block in page.blocks:
-            for paragraph in block.paragraphs:
-                for word in paragraph.words:
-                    for symbol in word.symbols:
-                        if (feature == FeatureType.SYMBOL):
-                            bounds.append(symbol.bounding_box)
+    return text
 
-                    if (feature == FeatureType.WORD):
-                        bounds.append(word.bounding_box)
+# from https://cloud.google.com/translate/docs/hybrid-glossaries-tutorial
+def text_to_speech(text, outfile):
+    """Converts plaintext to SSML and
+    generates synthetic audio from SSML
 
-                if (feature == FeatureType.PARA):
-                    bounds.append(paragraph.bounding_box)
+    ARGS
+    text: text to synthesize
+    outfile: filename to use to store synthetic audio
 
-            if (feature == FeatureType.BLOCK):
-                bounds.append(block.bounding_box)
+    RETURNS
+    nothing
+    """
 
-        if (feature == FeatureType.PAGE):
-            bounds.append(block.bounding_box)
+    # Replace special characters with HTML Ampersand Character Codes
+    # These Codes prevent the API from confusing text with
+    # SSML commands
+    # For example, '<' --> '&lt;' and '&' --> '&amp;'
+    escaped_lines = html.escape(text)
 
-    # The list `bounds` contains the coordinates of the bounding boxes.
-    return bounds
+    # Convert plaintext to SSML in order to wait two seconds
+    #   between each line in synthetic speech
+    ssml = '<speak>{}</speak>'.format(
+        escaped_lines.replace('\n', '\n<break time="2s"/>'))
 
+    # Instantiates a client
+    client = texttospeech.TextToSpeechClient()
 
-def render_doc_text(filein, fileout):
-    image = Image.open(filein)
-    bounds = get_document_bounds(filein, FeatureType.PAGE)
-    draw_boxes(image, bounds, 'blue')
-    bounds = get_document_bounds(filein, FeatureType.PARA)
-    draw_boxes(image, bounds, 'red')
-    bounds = get_document_bounds(filein, FeatureType.WORD)
-    draw_boxes(image, bounds, 'yellow')
+    # Sets the text input to be synthesized
+    synthesis_input = texttospeech.types.SynthesisInput(ssml=ssml)
 
-    if fileout is not 0:
-        image.save(fileout)
-    else:
-        image.show()
+    # Builds the voice request, selects the language code ("en-US") and
+    # the SSML voice gender ("MALE")
+    voice = texttospeech.types.VoiceSelectionParams(
+        language_code='en-US',
+        ssml_gender=texttospeech.enums.SsmlVoiceGender.MALE)
 
+    # Selects the type of audio file to return
+    audio_config = texttospeech.types.AudioConfig(
+        audio_encoding=texttospeech.enums.AudioEncoding.MP3)
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('detect_file', help='The image for text detection.')
-    parser.add_argument('-out_file', help='Optional output file', default=0)
-    args = parser.parse_args()
+    # Performs the text-to-speech request on the text input with the selected
+    # voice parameters and audio file type
+    response = client.synthesize_speech(synthesis_input, voice, audio_config)
 
-    render_doc_text(args.detect_file, args.out_file)
+    # Writes the synthetic audio to the output file.
+    with open(outfile, 'wb') as out:
+        out.write(response.audio_content)
+        print('Audio content written to file ' + outfile)
