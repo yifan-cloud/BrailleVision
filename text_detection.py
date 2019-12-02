@@ -13,45 +13,6 @@ from google.cloud import vision
 from google.cloud.vision import types
 from google.cloud import texttospeech
 
-# from google tutorial functions/ocr/app/main.py
-def detect_text(bucket, filename):
-    print('Looking for text in image {}'.format(filename))
-
-    futures = []
-
-    text_detection_response = vision_client.text_detection({
-        'source': {'image_uri': 'gs://{}/{}'.format(bucket, filename)}
-    })
-    annotations = text_detection_response.text_annotations
-    if len(annotations) > 0:
-        text = annotations[0].description
-    else:
-        text = ''
-    print('Extracted text {} from image ({} chars).'.format(text, len(text)))
-
-# from https://cloud.google.com/vision/docs/ocr
-def detect_text(path):
-    """Detects text in the file."""
-    import io
-    client = vision.ImageAnnotatorClient()
-
-    with io.open(path, 'rb') as image_file:
-        content = image_file.read()
-
-    image = vision.types.Image(content=content)
-
-    response = client.text_detection(image=image)
-    texts = response.text_annotations
-    print('Texts:')
-
-    for text in texts:
-        print('\n"{}"'.format(text.description))
-
-        vertices = (['({},{})'.format(vertex.x, vertex.y)
-                    for vertex in text.bounding_poly.vertices])
-
-        print('bounds: {}'.format(','.join(vertices)))
-
 # from https://cloud.google.com/translate/docs/hybrid-glossaries-tutorial
 def pic_to_text(infile):
     """Detects text in an image file
