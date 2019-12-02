@@ -88,3 +88,19 @@ def text_to_speech(text, outfile):
     with open(outfile, 'wb') as out:
         out.write(response.audio_content)
         print('Audio content written to file ' + outfile)
+
+def main():
+    # TODO: modify this to use output from realsense.py
+    # TODO: send audio to bluetooth
+    # Photo from which to extract text
+    infile = 'resources/example.png'
+    # Name of file that will hold synthetic speech
+    outfile = 'resources/example.mp3'
+
+    # photo -> detected text
+    text_to_speak = pic_to_text(infile)
+    # detected text -> synthetic audio
+    text_to_speech(text_to_speak, outfile)
+
+if __name__ == '__main__':
+    main()
