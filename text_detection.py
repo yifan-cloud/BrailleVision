@@ -40,7 +40,7 @@ def pic_to_text(infile):
 
     return text
 
-# from https://cloud.google.com/translate/docs/hybrid-glossaries-tutorial
+# modified from https://cloud.google.com/translate/docs/hybrid-glossaries-tutorial
 def text_to_speech(text, outfile):
     """Converts plaintext to SSML and
     generates synthetic audio from SSML

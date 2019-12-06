@@ -1,7 +1,10 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 
-double* py_array_to_c(PyArrayObject *in_array)
+/* returns a C array copy of the given numpy array,
+ * and sets the given shape array to the numpy array dimensions
+ */
+double* py_array_to_c(PyArrayObject *in_array, int *shape)
 {
     NpyIter *in_iter;
     NpyIter_IterNextFunc *in_iternext;
@@ -20,11 +23,13 @@ double* py_array_to_c(PyArrayObject *in_array)
 
     double ** in_dataptr = (double **) NpyIter_GetDataPtrArray(in_iter);
 
-    npy_intp *shape = PyArray_SHAPE(in_array);
+    npy_intp *in_shape = PyArray_SHAPE(in_array);
+    shape[0] = in_shape[0];
+    shape[1] = in_shape[1];
+    shape[2] = in_shape[2];
     int len = shape[0] * shape[1] * shape[2];
     double* out_array = (double*) malloc(sizeof(double) * len);
 
-    //TODO: figure out how to pass on array shape
     /*  iterate over the array */
     int idx = 0;
     do {
