@@ -49,38 +49,6 @@ int main(int argc, char *argv[])
     int i;
     //pShape is for array shape
 
-    /*
-    the google vision code is in python too.
-    but probably can't run both at the same time
-    so I think one should call the other, but
-    hmm. there are the three modes. all of them need the realsense data
-    so really getting the array should be a function
-    and then all of them call that function. actually only the depth really needs the binned array
-    the others need just api calls
-    so they should just call single functions in python and get the resulting... strings?
-    that depends on how text-to-speech works. this should get whatever that outputs,
-    for the modes that say something out loud
-
-    the apis are in Python, and will almost certainly be on Pi, so it's just the audio that needs
-    to go somewhere
-    but there's not really a reason to have it go through the other board then?
-    the pi can just send out audio itself
-
-    TODO: parsing data from Python objects to C structures
-    this requires knowing how the depth stuff works, though
-    the depth vibration is the only part to be implemented in C
-    the CV parts are in Python and just maybe sent here
-    well, the skeleton can be written, at least
-
-    - iron out how depth vibration works again (though I don't think we're the ones writing it?)
-        - what data is needed. just depth in the direction pointed at, presumably
-        - which requires knowing which way is being pointed in... probably the center
-        - okay just give the downsampled array then
-    - is Bluetooth audio coming from Pi (Python) or the other board (C)?
-        - seemingly from the Sparkfun
-    - what format is this data coming to this program in?
-    */
-
     Py_Initialize();
     pName = PyString_FromString("realsense");
     if (pName == NULL)
