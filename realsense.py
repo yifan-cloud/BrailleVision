@@ -8,82 +8,100 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 # Intel RealSense cross-platform open-source API
 import pyrealsense2 as rs
-print("Environment Ready")
-
-''' Getting the data
-'''
-
-
-
-#---- GATHER RAW ----#
+#print("Environment Ready")
 
 pipe = rs.pipeline()
 cfg = rs.config()
-cfg.enable_device_from_file("./bags/stairs.bag")
-profile = pipe.start(cfg)
 
-# Skip 5 first frames to give the Auto-Exposure time to adjust
-for x in range(5):
-  pipe.wait_for_frames()
-  
-# Store next frameset for later processing:
-frameset = pipe.wait_for_frames()
-depth_frame = frameset.get_depth_frame()
-
-# Cleanup:
-pipe.stop()
-print("Frames Captured")
+''' Getting the data
+'''
+def getRawDepthImg(visualize=False):
 
 
-colorizer = rs.colorizer()
-colorized_depth = np.asanyarray(colorizer.colorize(depth_frame).get_data())
+    #---- GATHER RAW ----#
+    cfg.enable_device_from_file("./bags/stairs.bag")
+    profile = pipe.start(cfg)
 
-plt.rcParams["axes.grid"] = False
-plt.rcParams['figure.figsize'] = [8, 4]
-plt.imshow(colorized_depth)
-plt.title("Raw Depth")
-plt.show()
-
-
-#---- GATHER FILTERED ----#
-
-
-depth_to_disparity = rs.disparity_transform(True)
-disparity_to_depth = rs.disparity_transform(False)
-
-decimation = rs.decimation_filter()
-decimation.set_option(rs.option.filter_magnitude, 4)
-
-spatial = rs.spatial_filter()
-spatial.set_option(rs.option.holes_fill, 3)
-
-temporal = rs.temporal_filter()
-
-hole_filling = rs.hole_filling_filter()
-
-profile = pipe.start(cfg)
-frames = []
-frames = []
-for x in range(10):
+    # Skip 5 first frames to give the Auto-Exposure time to adjust
+    for x in range(5):
+        pipe.wait_for_frames()
+    
+    # Store next frameset for later processing:
     frameset = pipe.wait_for_frames()
-    frames.append(frameset.get_depth_frame())
+    depth_frame = frameset.get_depth_frame()
 
-pipe.stop()
-print("Frames Captured")
+    # Cleanup:
+    pipe.stop()
+    print("Frames Captured")
 
-for x in range(10):
-    frame = frames[x]
-    frame = decimation.process(frame)
-    frame = depth_to_disparity.process(frame)
-    frame = spatial.process(frame)
-    frame = temporal.process(frame)
-    frame = disparity_to_depth.process(frame)
-    frame = hole_filling.process(frame)
 
-colorized_depth = np.asanyarray(colorizer.colorize(frame).get_data())
-plt.title("Filtered")
-plt.imshow(colorized_depth)
-plt.show()
+    colorizer = rs.colorizer()
+    colorized_depth = np.asanyarray(colorizer.colorize(depth_frame).get_data())
+
+    if visualize:
+        plt.rcParams["axes.grid"] = False
+        plt.rcParams['figure.figsize'] = [8, 4]
+        plt.imshow(colorized_depth)
+        plt.title("Raw Depth")
+        plt.show()
+    
+    return colorized_depth
+
+def getFilteredDepthImg(visualize=False):
+    #---- GATHER FILTERED ----#
+
+
+    depth_to_disparity = rs.disparity_transform(True)
+    disparity_to_depth = rs.disparity_transform(False)
+
+    decimation = rs.decimation_filter()
+    decimation.set_option(rs.option.filter_magnitude, 4)
+
+    spatial = rs.spatial_filter()
+    spatial.set_option(rs.option.holes_fill, 3)
+
+    temporal = rs.temporal_filter()
+
+    hole_filling = rs.hole_filling_filter()
+
+    profile = pipe.start(cfg)
+    frames = []
+    frames = []
+    for x in range(10):
+        frameset = pipe.wait_for_frames()
+        frames.append(frameset.get_depth_frame())
+
+    pipe.stop()
+    print("Frames Captured")
+
+    for x in range(10):
+        frame = frames[x]
+        frame = decimation.process(frame)
+        frame = depth_to_disparity.process(frame)
+        frame = spatial.process(frame)
+        frame = temporal.process(frame)
+        frame = disparity_to_depth.process(frame)
+        frame = hole_filling.process(frame)
+
+    colorized_depth = np.asanyarray(colorizer.colorize(frame).get_data())
+
+    if visualize:
+        plt.title("Filtered")
+        plt.imshow(colorized_depth)
+        plt.show()
+    
+    return colorized_depth
+
+    #---- DOWNSAMPLE FILTERED ----#
+
+    downsampled_rgb = bin_ndarray(colorized_depth, (4, 4, 3), 'mean').astype('int')
+    
+    if visualize:
+        plt.imshow(downsampled_rgb)
+        plt.title('Downsampled')
+        plt.show()
+
+    return downsampled_rgb
 
 def bin_ndarray(ndarray, new_shape, operation='sum'):
     """
@@ -121,11 +139,4 @@ def bin_ndarray(ndarray, new_shape, operation='sum'):
         op = getattr(ndarray, operation)
         ndarray = op(-1*(i+1))
     return ndarray
-
-#---- DOWNSAMPLE FILTERED ----#
-
-downsampled_rgb = bin_ndarray(colorized_depth, (4, 4, 3), 'mean').astype('int')
-plt.imshow(downsampled_rgb)
-plt.title('Downsampled')
-plt.show()
 
