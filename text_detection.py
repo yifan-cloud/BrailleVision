@@ -8,30 +8,30 @@ https://cloud.google.com/translate/docs/hybrid-glossaries-tutorial
 
 import io
 import html
+import cv2
 
 from google.cloud import vision
 from google.cloud.vision import types
 from google.cloud import texttospeech
 
-# from https://cloud.google.com/translate/docs/hybrid-glossaries-tutorial
-def pic_to_text(infile):
+import image_retrieval
+
+# Instantiates a client
+client = vision.ImageAnnotatorClient()
+
+# modified from https://cloud.google.com/translate/docs/hybrid-glossaries-tutorial
+def pic_to_text(img):
     """Detects text in an image file
 
     ARGS
-    infile: path to image file
+    img: input image as numpy array
 
     RETURNS
     String of text detected in image
     """
 
-    # Instantiates a client
-    client = vision.ImageAnnotatorClient()
-
-    # Opens the input image file
-    with io.open(infile, 'rb') as image_file:
-        content = image_file.read()
-
-    image = vision.types.Image(content=content)
+    # encode img to byte string and pass to client
+    image = client.image(content=cv2.imencode('.jpg', img)[1].tostring())
 
     # For dense text, use document_text_detection
     # For less dense text, use text_detection
@@ -90,15 +90,15 @@ def text_to_speech(text, outfile):
         print('Audio content written to file ' + outfile)
 
 def main():
-    # TODO: modify this to use output from realsense.py
     # TODO: send audio to bluetooth
-    # Photo from which to extract text
-    infile = 'resources/example.png'
     # Name of file that will hold synthetic speech
-    outfile = 'resources/example.mp3'
+    outfile = 'audio/output.mp3'
 
+    # get image from realsense cam
+    img = image_retrieval.getColorImg()
+    
     # photo -> detected text
-    text_to_speak = pic_to_text(infile)
+    text_to_speak = pic_to_text(img)
     # detected text -> synthetic audio
     text_to_speech(text_to_speak, outfile)
 
