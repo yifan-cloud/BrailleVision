@@ -1,56 +1,29 @@
-''' Source: https://github.com/IntelRealSense/librealsense/blob/jupyter/notebooks/depth_filters.ipynb
-'''
+"""
+Contains functions to call to get depth/RGB images from the realsense camera
+"""
 
 # fundamental package for scientific computing
 import numpy as np
-# 2D plotting library producing publication quality figures
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 # Intel RealSense cross-platform open-source API
 import pyrealsense2 as rs
-print("Environment Ready")
 
-''' Getting the data
-'''
-
-
-
-#---- GATHER RAW ----#
-
+#----- initializing code -----
 pipe = rs.pipeline()
 cfg = rs.config()
 cfg.enable_device_from_file("./bags/stairs.bag")
 profile = pipe.start(cfg)
 
+onDepthMode = False
+
 # Skip 5 first frames to give the Auto-Exposure time to adjust
 for x in range(5):
   pipe.wait_for_frames()
-  
-# Store next frameset for later processing:
-frameset = pipe.wait_for_frames()
-depth_frame = frameset.get_depth_frame()
-
-# Cleanup:
 pipe.stop()
-print("Frames Captured")
-
-
-colorizer = rs.colorizer()
-colorized_depth = np.asanyarray(colorizer.colorize(depth_frame).get_data())
-
-plt.rcParams["axes.grid"] = False
-plt.rcParams['figure.figsize'] = [8, 4]
-plt.imshow(colorized_depth)
-plt.title("Raw Depth")
-plt.show()
-
-
-#---- GATHER FILTERED ----#
-
 
 depth_to_disparity = rs.disparity_transform(True)
 disparity_to_depth = rs.disparity_transform(False)
 
+# init smoothing filters
 decimation = rs.decimation_filter()
 decimation.set_option(rs.option.filter_magnitude, 4)
 
@@ -60,30 +33,56 @@ spatial.set_option(rs.option.holes_fill, 3)
 temporal = rs.temporal_filter()
 
 hole_filling = rs.hole_filling_filter()
+#-----------------------------
 
-profile = pipe.start(cfg)
-frames = []
-frames = []
-for x in range(10):
+# must call startDepthMode every time we start on/switch to depth-vibration mode
+def startDepthMode():
+    profile = pipe.start(cfg)
+    onDepthMode = True
+
+# returns the current depth frame as a numpy array
+# must call startDepthMode every time we start on/switch to depth-vibration mode
+def getDepthImg():
+    if not onDepthMode:
+        return None
+
     frameset = pipe.wait_for_frames()
-    frames.append(frameset.get_depth_frame())
+    depth_frame = frameset.get_depth_frame()
 
-pipe.stop()
-print("Frames Captured")
+    # filter frame for smoothness
+    depth_frame = filterDepthImg(depth_frame)
 
-for x in range(10):
-    frame = frames[x]
+    # depth_frame class -> numpy array
+    depth_image = np.asanyarray(depth_frame.get_data())
+
+    return depth_image
+
+def filterDepthImg(frame):
     frame = decimation.process(frame)
     frame = depth_to_disparity.process(frame)
     frame = spatial.process(frame)
-    frame = temporal.process(frame)
+    frame = temporal.process(frame) # only useful w/ continuous stream
     frame = disparity_to_depth.process(frame)
     frame = hole_filling.process(frame)
 
-colorized_depth = np.asanyarray(colorizer.colorize(frame).get_data())
-plt.title("Filtered")
-plt.imshow(colorized_depth)
-plt.show()
+    return frame
+
+# must call endDepthMode every time we leave depth-vibration mode
+def endDepthMode():
+    pipe.stop()
+    onDepthMode = False
+
+# returns the current color frame as a numpy array
+def getColorImg():
+    profile = pipe.start(cfg)
+    frameset = pipe.wait_for_frames()
+    color_frame = frameset.get_color_frame()
+    pipe.stop()
+
+    # frame(?) class -> numpy array
+    color_image = np.asanyarray(color_frame.get_data())
+
+    return color_image
 
 def bin_ndarray(ndarray, new_shape, operation='sum'):
     """
@@ -121,11 +120,3 @@ def bin_ndarray(ndarray, new_shape, operation='sum'):
         op = getattr(ndarray, operation)
         ndarray = op(-1*(i+1))
     return ndarray
-
-#---- DOWNSAMPLE FILTERED ----#
-
-downsampled_rgb = bin_ndarray(colorized_depth, (4, 4, 3), 'mean').astype('int')
-plt.imshow(downsampled_rgb)
-plt.title('Downsampled')
-plt.show()
-
