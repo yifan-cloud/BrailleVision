@@ -1,3 +1,7 @@
+"""
+reference: https://scipy-lectures.org/advanced/interfacing_with_c/interfacing_with_c.html
+"""
+
 #include <Python.h>
 #include <numpy/arrayobject.h>
 
@@ -54,76 +58,53 @@ int main(int argc, char *argv[])
     int i;
     //pShape is for array shape
 
+    int shape[3];
+
     Py_Initialize();
-    pName = PyString_FromString("realsense");
+    pName = PyString_FromString("image_retrieval");
     if (pName == NULL)
         return 1;
 
-    pModule = PyImport_Import(pName); //TODO: not sure how to know if the top-level code executes
+    //TODO: not sure how to know if the top-level code executes
+    pModule = PyImport_Import(pName);
     Py_DECREF(pName); //DECREF = decrement ref count
 
     if (pModule != NULL) {
-        pFunc = PyObject_GetAttrString(pModule, "bin_ndarray");
+        pFunc = PyObject_GetAttrString(pModule, "getBinnedDepthImg");
         /* pFunc is a new reference */
 
         if (pFunc && PyCallable_Check(pFunc)) {
             //constructing python function args
-            //TODO: need ndarray, tuple, and potentially operation
-            /*
-            not sure how to get an ndarray in C, but I suppose we could get it from Python to start with
-            and just keep the reference
-            use PyTuple_New to construct the shape
-            string can probably be converted more easily
-            */
-           pShape = PyTuple_New(3);
-           long val = 4;
-           PyTuple_SetItem(pShape, 0, PyLong_FromLong(val)); //need to turn C ints into python ints. 4, 4, 3
-           val = 3;
-           PyTuple_SetItem(pShape, 1, PyLong_FromLong(val));
-           PyTuple_SetItem(pShape, 2, PyLong_FromLong(val));
-
-            pArgs = PyTuple_New(2); //assuming 2 if not passing in operation
-            // for (i = 0; i < argc - 3; ++i) {
-            //     pValue = PyInt_FromLong(atoi(argv[i + 3]));
-            //     if (!pValue) {
-            //         Py_DECREF(pArgs);
-            //         Py_DECREF(pModule);
-            //         fprintf(stderr, "Cannot convert argument\n");
-            //         return 1;
-            //     }
-            //     /* pValue reference stolen here: */
-            //     PyTuple_SetItem(pArgs, i, pValue);
-            // }
-
-            PyTuple_SetItem(pArgs, 1, pShape);
-            Py_DECREF(pShape);
+            pArgs = PyTuple_New(0); /* pArgs is a new reference */
 
             //call function and get return val
-            pValue = PyObject_CallObject(pFunc, pArgs);
+            pValue = PyObject_CallObject(pFunc, pArgs); /* pValue is a new reference */
             Py_DECREF(pArgs);
-            if (pValue != NULL) {
-                printf("Result of call: %ld\n", PyInt_AsLong(pValue));
-                Py_DECREF(pValue);
-            }
-            else {
+
+            //if function call failed
+            if (pValue == NULL) {
                 Py_DECREF(pFunc);
                 Py_DECREF(pModule);
                 PyErr_Print();
                 fprintf(stderr,"Call failed\n");
                 return 1;
             }
+            
+            //TODO: not sure this should be double when the bin makes the np array ints
+            double* depth_array = py_array_to_c(pValue, shape);
+            Py_DECREF(pValue); //now done w/ return value
         }
         else {
             if (PyErr_Occurred())
                 PyErr_Print();
-            fprintf(stderr, "Cannot find function \"bin_ndarray\"\n");
+            fprintf(stderr, "Cannot find function \"getBinnedDepthImg\"\n");
         }
         Py_XDECREF(pFunc);
         Py_DECREF(pModule);
     }
     else {
         PyErr_Print();
-        fprintf(stderr, "Failed to load \"realsense\"\n");
+        fprintf(stderr, "Failed to load \"image_retrieval\"\n");
         return 1;
     }
     Py_Finalize();

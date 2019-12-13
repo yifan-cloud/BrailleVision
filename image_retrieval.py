@@ -42,7 +42,7 @@ def startDepthMode():
 
 # returns the current depth frame as a numpy array
 # must call startDepthMode every time we start on/switch to depth-vibration mode
-def getDepthImg():
+def getBinnedDepthImg():
     if not onDepthMode:
         return None
 
@@ -55,7 +55,9 @@ def getDepthImg():
     # depth_frame class -> numpy array
     depth_image = np.asanyarray(depth_frame.get_data())
 
-    return depth_image
+    binned_depth_img = bin_ndarray(depth_image, (4, 4, 1), 'mean').astype('int')
+
+    return binned_depth_img
 
 def filterDepthImg(frame):
     frame = decimation.process(frame)
