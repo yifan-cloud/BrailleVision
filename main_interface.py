@@ -43,7 +43,7 @@ def main():
             # get haptic array, flattened
             arr = image_retrieval.getBinnedDepthArray().flatten()
             # 1D array -> byte string
-            arrStr = np.array2string(arr, separator=' ')
+            arrStr = ' '.join(map(str, arr))
             arrBStr = bytes(arrStr, encoding='utf-8')
             # write to serial
             nrfSerial.write(arrBStr)
