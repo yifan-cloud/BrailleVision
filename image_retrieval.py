@@ -55,7 +55,7 @@ def getBinnedDepthArray():
     # depth_frame class -> numpy array
     depth_image = np.asanyarray(depth_frame.get_data())
 
-    binned_depth_arr = bin_ndarray(depth_image, (4, 4, 1), 'mean').astype('int')
+    binned_depth_arr = bin_ndarray(depth_image, (4, 4), 'mean')#.astype('int')
 
     return binned_depth_arr
 
@@ -122,3 +122,11 @@ def bin_ndarray(ndarray, new_shape, operation='sum'):
         op = getattr(ndarray, operation)
         ndarray = op(-1*(i+1))
     return ndarray
+
+def main():
+    startDepthMode()
+    print( getBinnedDepthArray() )
+    endDepthMode()
+
+if __name__ == "__main__":
+    main()
