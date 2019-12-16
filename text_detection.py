@@ -9,6 +9,7 @@ https://cloud.google.com/translate/docs/hybrid-glossaries-tutorial
 import io
 import html
 import cv2
+import os
 
 from google.cloud import vision
 from google.cloud.vision import types
@@ -90,7 +91,6 @@ def text_to_speech(text, outfile):
         print('Audio content written to file ' + outfile)
 
 def main():
-    # TODO: send audio to bluetooth
     # Name of file that will hold synthetic speech
     outfile = 'audio/output.mp3'
 
@@ -101,6 +101,9 @@ def main():
     text_to_speak = pic_to_text(img)
     # detected text -> synthetic audio
     text_to_speech(text_to_speak, outfile)
+
+    command = 'mpg321 ' + outfile + ' &'
+    os.system(command)
 
 if __name__ == '__main__':
     main()
