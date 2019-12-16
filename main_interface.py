@@ -24,12 +24,12 @@ def main():
     image_retrieval.startDepthMode()
 
     # set up connections
-    nrfSerial = serial.Serial("/dev/ama0", 115200)
+    nrfSerial = serial.Serial("/dev/ama0", 115200, timeout=0) # no timeout, i.e. don't block on waiting
     button = Button(4) # TODO: pin number
 
     while True:
         # read mode change from serial
-        line = nrfSerial.readline().strip() #TODO: or should this be on an interrupt
+        line = nrfSerial.read() # reads 1 byte by default
 
         # read button input from gpio pin
         pressed = button.is_pressed()
