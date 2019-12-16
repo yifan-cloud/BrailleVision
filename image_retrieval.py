@@ -12,6 +12,7 @@ pipe = rs.pipeline()
 cfg = rs.config()
 cfg.enable_device_from_file("./bags/stairs.bag")
 profile = pipe.start(cfg)
+depth_scale = profile.get_device().first_depth_sensor().get_depth_scale()
 
 onDepthMode = False
 
@@ -43,9 +44,6 @@ def startDepthMode():
 # returns the current depth frame as a numpy array
 # must call startDepthMode every time we start on/switch to depth-vibration mode
 def getBinnedDepthArray():
-    if not onDepthMode:
-        return None
-
     frameset = pipe.wait_for_frames()
     depth_frame = frameset.get_depth_frame()
 
@@ -53,7 +51,8 @@ def getBinnedDepthArray():
     depth_frame = filterDepthImg(depth_frame)
 
     # depth_frame class -> numpy array
-    depth_image = np.asanyarray(depth_frame.get_data())
+    depth_image = np.asanyarray(depth_frame.get_data(), dtype=np.dtype('float'))
+    depth_image = depth_image * depth_scale # depth in pixels -> dist in meters
 
     binned_depth_arr = bin_ndarray(depth_image, (4, 4), 'mean')#.astype('int')
 
