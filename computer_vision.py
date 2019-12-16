@@ -156,16 +156,15 @@ def text_to_speech(text, outfile):
         print('Audio content written to file ' + outfile)
 
 def main():
-    imageCap()
-    # TODO: send audio to bluetooth
     # Name of file that will hold synthetic speech
     outfile1 = 'audio_text_mode.mp3'
     outfile2 = 'audio_label_mode.mp3'
     # get image from realsense cam
     img = image_retrieval.getColorImg()
+    # save img to file for debugging purposes
     with open('what.jpg', 'rb') as image_file:
         content = image_file.read()
-    # photo -> detected text
+    # photo -> object labels, detected text
     label = label_to_text(img)
     text_to_speak = pic_to_text(img)
     # detected text -> synthetic audio
