@@ -1,3 +1,6 @@
 *.DS_Store
 vision_motor_ros/
 __pycache__/
+
+c_numpy_array_ex.c
+test.py
