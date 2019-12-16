@@ -40,8 +40,10 @@ def main():
 
         # mode cases
         if mode == Mode.depth:
-            # get haptic array, flattened
-            arr = image_retrieval.getBinnedDepthArray().flatten()
+            # get haptic array
+            arr = image_retrieval.getBinnedDepthArray()
+            arr = np.fliplr(arr) # flip horizontally
+            arr = arr.flatten() # flatten to 1D
             # 1D array -> byte string
             arrStr = ' '.join(map(str, arr))
             arrBStr = bytes(arrStr, encoding='utf-8')
