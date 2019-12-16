@@ -1,10 +1,11 @@
 import enum
 import numpy as np
+import os
 import serial
 from gpiozero import Button
 
 import image_retrieval
-from text_detection import *
+from computer_vision import *
 
 class Mode(enum.Enum): 
     depth = 1
