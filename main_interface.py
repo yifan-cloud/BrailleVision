@@ -8,9 +8,9 @@ import image_retrieval
 from computer_vision import *
 
 class Mode(enum.Enum): 
-    depth = 1
-    objectRecog = 2
-    textDetect = 3
+    depth = 0
+    objectRecog = 1
+    textDetect = 2
 
 # plays an audio file; requires package mpg321 to be installed
 def playAudio(filename):
