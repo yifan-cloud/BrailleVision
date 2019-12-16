@@ -32,7 +32,7 @@ def pic_to_text(img):
     """
 
     # encode img to byte string and pass to client
-    image = client.image(content=cv2.imencode('.jpg', img)[1].tostring())
+    image = vision.types.Image(content=cv2.imencode('.jpg', img)[1].tostring())
 
     # For dense text, use document_text_detection
     # For less dense text, use text_detection
