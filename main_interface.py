@@ -24,20 +24,21 @@ def main():
     mode = Mode.depth
     image_retrieval.startDepthMode()
 
-    # set up connections
+    # set up connections TODO: correct port, baud rate
     nrfSerial = serial.Serial("/dev/ama0", 115200, timeout=0) # no timeout, i.e. don't block on waiting
-    button = Button(4) # TODO: pin number
+    button = Button(4) # TODO: THIS IS ACTUALLY A UART
 
     while True:
         # read mode change from serial
-        line = nrfSerial.read() # reads 1 byte by default
+        line = nrfSerial.read() # reads 1 byte by default TODO: change to match serial setup that works
 
         # read button input from gpio pin
         pressed = button.is_pressed()
 
-        # change mode
-        if line in Mode.__members__:
-            mode = Mode[line]
+        # change mode if positive int received
+        val_read = line.decode("utf-8").strip()  # byte string -> string stripped of whitespace
+        if val_read.isdigit():
+            mode = Mode( int(val_read) ) # string -> int -> Mode
 
         # mode cases
         if mode == Mode.depth:
