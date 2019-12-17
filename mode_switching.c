@@ -1,23 +1,23 @@
 /* this file just has code for mode-switching, which will be copied into a larger nrf control file
- * based on https://github.com/NordicPlayground/nrf52-drv-gpio-example/blob/master/drv_gpio_example.c
+ * based on the pin_change_int example from the nRF5 SDK
  */
 
-#include "pca10040.h"
-#include "nrf_error.h"
-#include "drv_gpio.h"
-#include "nrf_delay.h"
+#include <stdbool.h>
+#include "nrf.h"
+#include "nrf_drv_gpiote.h"
+#include "app_error.h"
+#include "boards.h"
 
-#include <string.h>
-
+/* pin numbers from pin assignments doc in the Google Drive */
 #define ROTARY_RIGHT 14
 #define ROTARY_LEFT 15
 #define SELECT_BUTTON 13
 
-#define M_INPUT_PINS_MSK   ((1UL << ROTARY_RIGHT) | (1UL << ROTARY_LEFT) | (1UL << SELECT_BUTTON))
-
 typedef enum Mode:uint8_t { depth, objectRecog, textDetect };
 
 Mode mode = depth;
+uint8_t toSend = 0; //value to send
+uint8_t sendMsg = 0; //flag for whether to send a message to Pi
 
 void switch_mode(uint8_t changeIsUp)
 {
@@ -36,65 +36,81 @@ void switch_mode(uint8_t changeIsUp)
     mode = (Mode) new_mode;
 }
 
-int main()
+void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-    drv_gpio_inpin_cfg_t in_cfg   = DRV_GPIO_INPIN_CFG_DEFAULT;
+    switch(pin)
+    {
+        case ROTARY_LEFT:
+            //mode down
+            switch_mode(0);
+            toSend = (uint8_t) mode;
+            sendMsg = 1;
+            break;
+        case ROTARY_RIGHT:
+            //mode up
+            switch_mode(1);
+            toSend = (uint8_t) mode;
+            sendMsg = 1;
+            break;
+        case SELECT_BUTTON:
+            //send 4
+            toSend = 4;
+            sendMsg = 1;
+            break;
+    }
+}
+/**
+ * @brief Function for configuring pins
+ * configures GPIOTE to give an interrupt on pin change.
+ */
+static void gpio_init(void)
+{
+    ret_code_t err_code;
 
-    /* Tweak the default to use the internal pullup resistors of the nRF52 since
-       there are no external pullup resistors on the nRF52 development board. */
-    in_cfg.pull = DRV_GPIO_PULL_UP;
+    err_code = nrf_drv_gpiote_init();
+    APP_ERROR_CHECK(err_code);
 
-    drv_gpio_inpin_cfg(ROTARY_LEFT, in_cfg, DRV_GPIO_NO_PARAM_PTR);
-    drv_gpio_inpin_cfg(ROTARY_RIGHT, in_cfg, DRV_GPIO_NO_PARAM_PTR);
-    drv_gpio_inpin_cfg(SELECT_BUTTON, in_cfg, DRV_GPIO_NO_PARAM_PTR);
+    //TODO: I don't know if we're doing the hacky wiring individual pins directly thing
+    // nrf_drv_gpiote_out_config_t out_config = GPIOTE_CONFIG_OUT_SIMPLE(false);
 
-    uint8_t sendMsg; //whether to send a message
-    uint8_t toSend = 0;
-    do
-    { 
-        uint8_t level;
+    // err_code = nrf_drv_gpiote_out_init(PIN_OUT, &out_config);
+    // APP_ERROR_CHECK(err_code);
 
-        sendMsg = 0;
-        
-        if (drv_gpio_inpin_get(ROTARY_LEFT, &level) == NRF_SUCCESS)
-        {
-            if (level == DRV_GPIO_LEVEL_LOW) //TODO: should this be low?
-            {
-                //mode down
-                switch_mode(0);
-                toSend = (uint8_t) mode;
-                sendMsg = 1;
-            }
-        }
-        else if (drv_gpio_inpin_get(ROTARY_RIGHT, &level) == NRF_SUCCESS)
-        {
-            if (level == DRV_GPIO_LEVEL_LOW)
-            {
-                //mode up
-                switch_mode(1);
-                toSend = (uint8_t) mode;
-                sendMsg = 1;
-            }
-        }
-        else if (drv_gpio_inpin_get(SELECT_BUTTON, &level) == NRF_SUCCESS)
-        {
-            if (level == DRV_GPIO_LEVEL_LOW)
-            {
-                //send 4
-                toSend = 4;
-                sendMsg = 1;
-            }
-        }
+    //configure input pins
+    nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
+    in_config.pull = NRF_GPIO_PIN_PULLUP;
 
-        //send update message to RPi
+    err_code = nrf_drv_gpiote_in_init(ROTARY_LEFT, &in_config, in_pin_handler);
+    APP_ERROR_CHECK(err_code);
+
+    nrf_drv_gpiote_in_event_enable(ROTARY_LEFT, true);
+
+    err_code = nrf_drv_gpiote_in_init(ROTARY_RIGHT, &in_config, in_pin_handler);
+    APP_ERROR_CHECK(err_code);
+
+    nrf_drv_gpiote_in_event_enable(ROTARY_RIGHT, true);
+
+    err_code = nrf_drv_gpiote_in_init(SELECT_BUTTON, &in_config, in_pin_handler);
+    APP_ERROR_CHECK(err_code);
+
+    nrf_drv_gpiote_in_event_enable(SELECT_BUTTON, true);
+}
+
+/**
+ * @brief Function for application main entry.
+ */
+int main(void)
+{
+    gpio_init();
+
+    while (true)
+    {
+        //if new message to send, send update message to RPi
         if (sendMsg)
         {
             //TODO: ...whatever this turns out to be
+
+            sendMsg = 0;
         }
-    } while (true) //((drv_gpio_inport_get() & M_INPUT_PINS_MSK) != 0);
-    
-    //TODO: this is only really relevant if the above loop isn't infinite
-    drv_gpio_pin_disconnect(ROTARY_LEFT);
-    drv_gpio_pin_disconnect(ROTARY_RIGHT);
-    drv_gpio_pin_disconnect(SELECT_BUTTON);
+    }
 }
