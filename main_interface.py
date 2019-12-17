@@ -45,10 +45,10 @@ def switch_mode(changeIsUp):
     new_mode = 0
     if changeIsUp:
         # increase mode num
-        new_mode = mode_lookup[mode] + 1 % 3
+        new_mode = (mode_lookup[mode] + 1) % 3
     else: # down
         # decrease mode num
-        new_mode = mode_lookup[mode] + 2 % 3 # +2 instead of -1 to ensure result always positive
+        new_mode = (mode_lookup[mode] + 2) % 3 # +2 instead of -1 to ensure result always positive
     mode = Mode(new_mode)
     
     # handle entering/leaving depth mode
