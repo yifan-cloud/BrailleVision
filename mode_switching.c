@@ -77,7 +77,7 @@ static void gpio_init(void)
     // APP_ERROR_CHECK(err_code);
 
     //configure input pins
-    nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
+    nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_LOTOHI(true); //TODO: is lotohi correct?
     in_config.pull = NRF_GPIO_PIN_PULLUP;
 
     err_code = nrf_drv_gpiote_in_init(ROTARY_LEFT, &in_config, in_pin_handler);
