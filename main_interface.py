@@ -22,8 +22,6 @@ def Credential():
     os.system(command1)
     os.system(command2)
 
-
-
 # plays an audio file; requires package mpg321 to be installed
 def playAudio(filename):
     command = 'mpg321 ' + filename + ' &'
@@ -36,36 +34,37 @@ def main():
     mode = Mode.depth
     image_retrieval.startDepthMode() 
 
-
     # set up connections
     #nrfSerial = serial.Serial("/dev/ttyS0", 9600, timeout=0) # no timeout, i.e. don't block on waiting
     nrfSerial = serial.Serial(
-    port = '/dev/ttyS0',
-    baudrate = 9600,
-    parity = serial.PARITY_NONE,
-    stopbits = serial.STOPBITS_ONE,
-    bytesize = serial.EIGHTBITS,
-    timeout = 1)
-    
-    
+        port = '/dev/ttyS0',
+        baudrate = 9600,
+        parity = serial.PARITY_NONE,
+        stopbits = serial.STOPBITS_ONE,
+        bytesize = serial.EIGHTBITS,
+        timeout = 1)
     
     button = Button(4) # TODO: pin number
 
     while True:
         # read mode change from serial
-       
-        line = nrfSerial.readline() # reads 1 byte by default
+        line = nrfSerial.readline()
         print(line)
 
         # read button input from gpio pin
         #pressed = button.is_pressed()
 
-
         # change mode if positive int received
+        old_mode = mode
         val_read = line.decode("utf-8").strip()  # byte string -> string stripped of whitespace
         if val_read.isdigit():
             mode = Mode( int(val_read) ) # string -> int -> Mode
 
+            # handle entering/leaving depth mode
+            if old_mode == Mode.depth:
+                image_retrieval.endDepthMode()
+            elif mode == Mode.depth:
+                image_retrieval.startDepthMode()
 
         # mode cases
         if mode == Mode.depth:
@@ -78,8 +77,6 @@ def main():
             arrBStr = bytes(arrStr, encoding='utf-8')
             # write to serial
             nrfSerial.write(arrBStr)
-            
-            # TODO: on leaving this mode, call endDepthMode
         elif mode == Mode.objectRecog:
             if pressed:
                 imageCap()
