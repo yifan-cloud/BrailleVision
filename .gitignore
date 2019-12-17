@@ -10,3 +10,4 @@ pwm.py
 text_to_speech_ex.py
 vision_motor_ros.zip
 mode_switching_no_interrupt.c
+text_detection.py

@@ -66,7 +66,7 @@ def imageCap():
     #depthwriter.release()
         pipeline.stop()
 
-#RETURN THE LABELS
+# detects objects in an image
 def pic_to_label(img):
     image = vision.types.Image(content=cv2.imencode('.jpg', img)[1].tostring())
     response = client.label_detection(image=image)
@@ -81,9 +81,6 @@ def pic_to_label(img):
     string_label=''.join([str(elem)for elem in label_list])
     
     return string_label
-    
-    
-    
 
 # modified from https://cloud.google.com/translate/docs/hybrid-glossaries-tutorial
 def pic_to_text(img):

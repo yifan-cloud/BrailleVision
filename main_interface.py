@@ -50,6 +50,7 @@ def switch_mode(changeIsUp):
         # decrease mode num
         new_mode = (mode_lookup[mode] + 2) % 3 # +2 instead of -1 to ensure result always positive
     mode = Mode(new_mode)
+    print("\nnew mode:", mode)
     
     # handle entering/leaving depth mode
     if old_mode == Mode.depth:
@@ -131,6 +132,7 @@ def main():
             switch_mode(False)
         elif GPIO.event_detected(SELECT_BUTTON):
             button_pressed = True
+            print("---> button pressed")
 
         # mode cases
         if mode == Mode.depth:
@@ -170,6 +172,7 @@ def main():
                     content = image_file.read()
                 # photo -> object label
                 label = pic_to_label(img)
+                print("object labels:")
                 print(label)
                 text_to_speech(label, outfile2)
                 playAudio(outfile2)
@@ -182,6 +185,7 @@ def main():
                 text_to_speak = pic_to_text(img)
                 # detected text -> synthetic audio
                 text_to_speech(text_to_speak, outfile1)
+                print("detected text:")
                 print(text_to_speak)
                 playAudio(outfile1)
     
