@@ -67,7 +67,7 @@ def imageCap():
         pipeline.stop()
 
 #RETURN THE LABELS
-def label_to_text(img):
+def pic_to_label(img):
     image = vision.types.Image(content=cv2.imencode('.jpg', img)[1].tostring())
     response = client.label_detection(image=image)
     labels = response.label_annotations
@@ -165,7 +165,7 @@ def main():
     with open('what.jpg', 'rb') as image_file:
         content = image_file.read()
     # photo -> object labels, detected text
-    label = label_to_text(img)
+    label = pic_to_label(img)
     text_to_speak = pic_to_text(img)
     # detected text -> synthetic audio
     text_to_speech(text_to_speak, outfile1)

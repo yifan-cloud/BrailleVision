@@ -10,7 +10,7 @@ import pyrealsense2 as rs
 #----- initializing code -----
 pipe = rs.pipeline()
 cfg = rs.config()
-cfg.enable_device_from_file("./bags/stairs.bag")
+#cfg.enable_device_from_file("./bags/stairs.bag")
 profile = pipe.start(cfg)
 depth_scale = profile.get_device().first_depth_sensor().get_depth_scale()
 
