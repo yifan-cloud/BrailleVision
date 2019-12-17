@@ -57,6 +57,23 @@ def switch_mode(changeIsUp):
     elif mode == Mode.depth:
         image_retrieval.startDepthMode()
 
+# converts a distance (depth) in meters to a tuple for two binary digits representing a vibration level
+def distToVibration(dist):
+    # distance in [0, 2.5] -> vibration in [00, 11]
+    d = dist
+    if dist > 2.5: # cut off max dist at 2.5
+        d = 2.5
+    level = 4 - int(d / 2.5 * 4)
+
+    if level == 0:
+        return (0, 0)
+    elif level == 1:
+        return (0, 1)
+    elif level == 2:
+        return (1, 0)
+    else:
+        return (1, 1)
+
 # plays an audio file; requires package mpg321 to be installed
 def playAudio(filename):
     command = 'mpg321 ' + filename + ' &'
@@ -73,6 +90,10 @@ def main():
     GPIO.setup(ROTARY_LEFT, GPIO.IN)
     GPIO.setup(ROTARY_RIGHT, GPIO.IN)
     GPIO.setup(SELECT_BUTTON, GPIO.IN)
+
+    GPIO.add_event_detect(ROTARY_LEFT, GPIO.RISING)
+    GPIO.add_event_detect(ROTARY_RIGHT, GPIO.RISING)
+    GPIO.add_event_detect(SELECT_BUTTON, GPIO.RISING)
 
     GPIO.output(QUAD1PIN1, GPIO.HIGH)
     GPIO.output(QUAD1PIN2, GPIO.HIGH)
@@ -103,21 +124,39 @@ def main():
         # parse message from serial if positive int received
         # val_read = line.decode("utf-8").strip()  # byte string -> string stripped of whitespace
         
-        # read GPIO input pins
-        if GPIO.input(ROTARY_LEFT) == GPIO.HIGH:
+        # check for rising edges on GPIO input pins
+        if GPIO.event_detected(ROTARY_LEFT):
             switch_mode(True)
-        elif GPIO.input(ROTARY_RIGHT) == GPIO.HIGH:
+        elif GPIO.event_detected(ROTARY_RIGHT):
             switch_mode(False)
-        elif GPIO.input(SELECT_BUTTON) == GPIO.HIGH:
+        elif GPIO.event_detected(SELECT_BUTTON):
             button_pressed = True
 
         # mode cases
         if mode == Mode.depth:
             # get haptic array
-            arr = image_retrieval.getBinnedDepthArray()
+            arr = image_retrieval.getBinnedDepthArray() # 2 x 2 array
             arr = np.fliplr(arr) # flip horizontally
-            arr = arr.flatten() # flatten to 1D
+
+            # for each motor quadrant
+            # quad 1
+            levels = distToVibration(arr[0][0])
+            GPIO.output(QUAD1PIN1, levels[0])
+            GPIO.output(QUAD1PIN2, levels[1])
+            # quad 2
+            levels = distToVibration(arr[0][1])
+            GPIO.output(QUAD2PIN1, levels[0])
+            GPIO.output(QUAD2PIN2, levels[1])
+            # quad 3
+            levels = distToVibration(arr[1][0])
+            GPIO.output(QUAD3PIN1, levels[0])
+            GPIO.output(QUAD3PIN2, levels[1])
+            # quad 4
+            levels = distToVibration(arr[1][1])
+            GPIO.output(QUAD4PIN1, levels[0])
+            GPIO.output(QUAD4PIN2, levels[1])
             
+            # arr = arr.flatten() # flatten to 1D
             # 1D array -> byte string
             # arrStr = ' '.join(map(str, arr))
             # arrBStr = bytes(arrStr, encoding='utf-8')

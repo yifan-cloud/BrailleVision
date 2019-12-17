@@ -54,7 +54,7 @@ def getBinnedDepthArray():
     depth_image = np.asanyarray(depth_frame.get_data(), dtype=np.dtype('float'))
     depth_image = depth_image * depth_scale # depth in pixels -> dist in meters
 
-    binned_depth_arr = bin_ndarray(depth_image, (4, 4), 'mean')#.astype('int')
+    binned_depth_arr = bin_ndarray(depth_image, (2, 2), 'mean')
 
     return binned_depth_arr
 
