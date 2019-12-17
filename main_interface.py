@@ -3,8 +3,6 @@ import time
 import numpy as np
 import os
 import serial
-from gpiozero import Button
-import RPi.GPIO
 import image_retrieval
 from computer_vision import *
 
