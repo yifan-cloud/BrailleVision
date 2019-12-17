@@ -44,27 +44,29 @@ def main():
         bytesize = serial.EIGHTBITS,
         timeout = 1)
     
-    button = Button(4) # TODO: pin number
-
     while True:
         # read mode change from serial
         line = nrfSerial.readline()
         print(line)
 
-        # read button input from gpio pin
-        #pressed = button.is_pressed()
+        button_pressed = False
 
-        # change mode if positive int received
+        # parse message from serial if positive int received
         old_mode = mode
         val_read = line.decode("utf-8").strip()  # byte string -> string stripped of whitespace
         if val_read.isdigit():
-            mode = Mode( int(val_read) ) # string -> int -> Mode
+            int_val = int(val_read)
 
-            # handle entering/leaving depth mode
-            if old_mode == Mode.depth:
-                image_retrieval.endDepthMode()
-            elif mode == Mode.depth:
-                image_retrieval.startDepthMode()
+            if int_val == 4: # button pressed
+                button_pressed = True
+            else: # all other numbers that can be received are mode numbers
+                mode = Mode( int_val ) # string -> int -> Mode
+
+                # handle entering/leaving depth mode
+                if old_mode == Mode.depth:
+                    image_retrieval.endDepthMode()
+                elif mode == Mode.depth:
+                    image_retrieval.startDepthMode()
 
         # mode cases
         if mode == Mode.depth:
@@ -78,19 +80,19 @@ def main():
             # write to serial
             nrfSerial.write(arrBStr)
         elif mode == Mode.objectRecog:
-            if pressed:
+            if button_pressed:
                 imageCap()
                 img = image_retrieval.getColorImg()
                 with open('whatthe.jpg', 'rb') as image_file:
                     content = image_file.read()
-                # photo -> detected text
+                # photo -> object label
                 label = pic_to_label(img)
                 print(label)
                 text_to_speech(label, outfile2)
                 playAudio(outfile2)
                 pass
         elif mode == Mode.textDetect:
-            if pressed:
+            if button_pressed:
                 # get image from realsense cam
                 img = image_retrieval.getColorImg()
                 
